@@ -1,34 +1,17 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
+// Giả lập database (Thay thế bằng DB thực tế nếu cần)
+const ADMIN_USERNAME = "admin"
+const ADMIN_PASSWORD = "password123"
+
 export async function POST(request: Request) {
   try {
     const { username, password } = await request.json()
 
-    // Gửi request đăng ký
-    const registerResponse = await fetch("http://localhost:3000/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    })
-
-    const registerData = await registerResponse.json()
-
-    if (!registerData.success) {
-      return NextResponse.json(registerData, { status: 400 }) // Trả về lỗi nếu đăng ký thất bại
-    }
-
-    // Sau khi đăng ký thành công, tự động đăng nhập
-    const loginResponse = await fetch("http://localhost:3000/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    })
-
-    const loginData = await loginResponse.json()
-
-    if (loginData.success) {
-      // Đặt cookie đăng nhập
+    // Kiểm tra thông tin đăng nhập
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      // Set session cookie
       cookies().set("user", username, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -36,12 +19,11 @@ export async function POST(request: Request) {
         path: "/",
       })
 
-      // Chuyển hướng đến trang chủ hoặc dashboard
-      return NextResponse.redirect(new URL("/dashboard", request.url))
+      return NextResponse.json({ success: true, message: "Đăng nhập thành công" })
+    } else {
+      return NextResponse.json({ success: false, message: "Sai tên đăng nhập hoặc mật khẩu" }, { status: 401 })
     }
-
-    return NextResponse.json({ success: false, description: "Lỗi khi đăng nhập" }, { status: 500 })
   } catch (error) {
-    return NextResponse.json({ success: false, description: "Lỗi máy chủ" }, { status: 500 })
+    return NextResponse.json({ success: false, message: "Lỗi server" }, { status: 500 })
   }
 }
